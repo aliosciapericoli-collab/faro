@@ -11,6 +11,7 @@ import {
   eliminaCredenziale,
   type Provider,
 } from "@/lib/credenziali.functions";
+import { AnalyticsGA4 } from "@/components/AnalyticsGA4";
 
 export const Route = createFileRoute("/_authenticated/proprieta/$id")({
   component: ProprietaDetail,
@@ -63,6 +64,12 @@ function ProprietaDetail() {
             />
           );
         })}
+      </div>
+
+      <div className="mt-10">
+        <p className="eyebrow">Analytics</p>
+        <h2 className="mt-1 mb-4 text-xl font-semibold text-primary">Google Analytics 4</h2>
+        <AnalyticsGA4 propertyId={property.id} />
       </div>
     </div>
   );
@@ -150,11 +157,22 @@ function IntegrationCard({
       {espanso && !connesso && (
         <form onSubmit={onSalva} className="mt-4 space-y-2">
           <label className="block text-xs text-muted-foreground">
-            Credenziale (
-            {provider === "ga4" || provider === "search_console"
-              ? "JSON del service account"
-              : "token / chiave API"}
-            ) — viene cifrata nel Vault, non torna mai in chiaro dopo il salvataggio.
+            Credenziale — viene cifrata nel Vault, non torna mai in chiaro dopo il salvataggio.
+            {provider === "ga4" && (
+              <>
+                {" "}
+                Formato atteso, un unico JSON:{" "}
+                <code className="text-[11px]">
+                  {'{"service_account": {...}, "ga4_property_id": "123456789"}'}
+                </code>
+                . Il service account si crea su Google Cloud Console (API GA4 Data abilitata), l'ID
+                proprietà (numerico, diverso dal Measurement ID G-XXXX) si trova in Analytics →
+                Amministrazione → Dettagli proprietà.
+              </>
+            )}
+            {provider === "search_console" && " Formato: JSON del service account."}
+            {(provider === "google_ads" || provider === "meta_ads") &&
+              " Formato: token / chiave API."}
           </label>
           <textarea
             value={secret}

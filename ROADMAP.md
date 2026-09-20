@@ -9,8 +9,15 @@
       integrazioni previste.
 - [x] Vault delle credenziali: salva/disconnetti per proprietà, cifrato,
       mai esposto in chiaro dopo il salvataggio.
-- [ ] **Deploy**: da fare — dipende da dove decidi di ospitarlo (Cloudflare
-      via Lovable, o un altro host Node). Vedi nota in fondo.
+- [x] **Deploy su Render** (`render.yaml`), live su `faro-cq84.onrender.com`.
+- [x] **Grafici GA4** (utenti attivi, visualizzazioni pagina, eventi
+      principali — ultimi 28 giorni) sulla pagina di ogni proprietà,
+      collegati alla GA4 Data API reale. Restano "non connesso" finché non
+      si incolla la credenziale GA4 (vedi sotto) — nessun dato finto.
+- [ ] **Migration da applicare**: `supabase/migrations/0002_leggi_credenziale.sql`
+      va eseguita nell'SQL Editor del progetto Supabase di Faro (stessa
+      procedura della prima migration) — senza, il pulsante "Connetti" su
+      GA4 salva la credenziale ma i grafici non riescono a leggerla.
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
@@ -18,14 +25,21 @@ Oggi il cruscotto sa _conservare_ le credenziali. Il prossimo passo per
 ciascuna integrazione è usarle davvero (leggere dati, o creare campagne).
 Elenco di cosa serve raccogliere, integrazione per integrazione:
 
-### Google Analytics 4 (lettura dati)
+### Google Analytics 4 (lettura dati) — grafici già pronti, manca solo la credenziale
 
-- Service account Google Cloud con accesso alla **GA4 Data API**.
-- Aggiunto come utente "Visualizzatore" sulla proprietà GA4 in Analytics
-  → Amministrazione → Accesso alla proprietà.
-- Una volta incollato in Faro: pannello con utenti attivi, sorgenti di
-  traffico, eventi chiave (le due conversioni già attive su Discernia:
-  `iscrizione_newsletter`, `lettura_articolo`).
+- Service account Google Cloud con accesso alla **GA4 Data API** (abilitarla
+  in Google Cloud Console → API e servizi).
+- Il service account aggiunto come utente "Visualizzatore" sulla proprietà
+  GA4 in Analytics → Amministrazione → Accesso alla proprietà.
+- L'**ID proprietà GA4** (numerico, tipo `123456789` — diverso dal
+  Measurement ID `G-XXXX` usato per il tracciamento sul sito), da
+  Analytics → Amministrazione → Dettagli proprietà.
+- In Faro, sulla scheda GA4 della proprietà, incollare un unico JSON:
+  `{"service_account": {...il JSON scaricato da Google Cloud...}, "ga4_property_id": "123456789"}`.
+- Appena connesso, compaiono da soli: utenti attivi e visualizzazioni
+  pagina (28 giorni), più gli eventi principali — incluse le due
+  conversioni già attive su Discernia (`iscrizione_newsletter`,
+  `lettura_articolo`).
 
 ### Google Search Console (lettura dati)
 
