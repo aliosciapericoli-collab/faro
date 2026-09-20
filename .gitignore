@@ -1,0 +1,18 @@
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+*.log
+
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Chiavi/segreti locali: il .env con solo VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY
+# si può committare (sono pubbliche per design), ma la service role key no.
+.env.local

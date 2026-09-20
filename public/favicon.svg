@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#141B2E"/>
+  <!-- fascio del faro -->
+  <path d="M32 14 L54 30 L32 26 L10 30 Z" fill="#E0B45C" opacity="0.55"/>
+  <!-- torre -->
+  <path d="M27 18 H37 L40 50 H24 Z" fill="#F5F1E8"/>
+  <rect x="25.5" y="30" width="13" height="4" fill="#141B2E"/>
+  <rect x="26.5" y="40" width="11" height="4" fill="#141B2E"/>
+  <!-- lanterna -->
+  <rect x="28.5" y="10" width="7" height="8" rx="1.5" fill="#E0B45C"/>
+  <!-- base -->
+  <path d="M20 50 H44 L47 54 H17 Z" fill="#F5F1E8"/>
+</svg>
