@@ -15,4 +15,9 @@ export default defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  // Render assegna un host dinamico (*.onrender.com): senza questo, il
+  // controllo anti DNS-rebinding di `vite preview` blocca ogni richiesta.
+  preview: {
+    allowedHosts: true,
+  },
 });
