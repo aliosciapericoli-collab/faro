@@ -23,6 +23,13 @@
 - [x] **Migration applicate**: `0001_init.sql`, `0002_leggi_credenziale.sql`
       e `0003_property_members.sql` sono tutte live sul database Supabase
       di produzione di Faro.
+- [x] **Grafici in stile "consumer"**: aree sfumate, numeri hero, chip di
+      variazione % vs i 28 giorni precedenti (mai finta: nulla se il
+      periodo precedente è a zero), card "in arrivo" per i canali non
+      ancora collegati.
+- [x] **Google Search Console** — grafici già pronti (clic, impressioni,
+      query principali), manca solo la credenziale. Stesso service account
+      di GA4, riusabile.
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
@@ -46,12 +53,20 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
   conversioni già attive su Discernia (`iscrizione_newsletter`,
   `lettura_articolo`).
 
-### Google Search Console (lettura dati)
+### Google Search Console (lettura dati) — grafici già pronti, manca solo la credenziale
 
-- Stesso service account (o uno dedicato) aggiunto come utente in Search
-  Console → Impostazioni → Utenti e permessi, proprietà `www.discernia.it`.
-- Una volta collegato: query di ricerca, posizione media, copertura
-  dell'indice, sitemap inviate — l'"indicizzazione" di cui parlavamo.
+- Abilitare la **Search Console API** nello stesso progetto Google Cloud del
+  service account già creato per GA4 (API e servizi → Abilita API).
+- Lo stesso service account aggiunto come utente in Search Console →
+  Impostazioni → Utenti e permessi.
+- In Faro, sulla scheda Search Console della proprietà, incollare un unico
+  JSON: `{"service_account": {...lo stesso JSON di GA4...}, "site_url": "sc-domain:esempio.it"}`.
+  `site_url` è l'identificativo esatto della proprietà così com'è in Search
+  Console: per una proprietà a dominio è `sc-domain:esempio.it` (es. per
+  Discernia: `sc-domain:discernia.it`), per una a prefisso URL è l'URL
+  verificato per intero con lo slash finale.
+- Appena connesso, compaiono da soli: clic e impressioni (28 giorni), più le
+  query di ricerca principali.
 
 ### Google Ads (creazione/gestione campagne)
 
