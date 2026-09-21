@@ -20,13 +20,9 @@
       niente altre proprietà, niente pulsanti di connessione. L'utente va
       creato prima in Supabase Auth (Authentication → Users → Add user),
       poi aggiunto in "Accesso esterno" sulla pagina della proprietà.
-- [ ] **Migration da applicare**: `supabase/migrations/0002_leggi_credenziale.sql`
-      e `supabase/migrations/0003_property_members.sql` vanno eseguite
-      nell'SQL Editor del progetto Supabase di Faro (stessa procedura
-      della prima migration) — senza la 0002 il pulsante "Connetti" su
-      GA4 salva la credenziale ma i grafici non riescono a leggerla; senza
-      la 0003 la sezione "Accesso esterno" non ha la tabella su cui
-      scrivere.
+- [x] **Migration applicate**: `0001_init.sql`, `0002_leggi_credenziale.sql`
+      e `0003_property_members.sql` sono tutte live sul database Supabase
+      di produzione di Faro.
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
