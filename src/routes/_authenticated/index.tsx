@@ -9,23 +9,37 @@ import {
   type Integration,
 } from "@/lib/proprieta";
 import { PROVIDER, PROVIDER_LABEL } from "@/lib/credenziali.functions";
-import { APP_TAGLINE } from "@/lib/site";
+import { APP_TAGLINE, OWNER_EMAIL } from "@/lib/site";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
 });
 
 function Dashboard() {
+  const [email, setEmail] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[] | null>(null);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [nuovoNome, setNuovoNome] = useState("");
   const [nuovoUrl, setNuovoUrl] = useState("");
   const [creando, setCreando] = useState(false);
 
+  const isOwner = email === OWNER_EMAIL;
+
   const ricarica = async () => {
-    const [props, ints] = await Promise.all([listaProprieta(), listaIntegrazioni()]);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    setEmail(user?.email ?? null);
+
+    // Le RLS filtrano già properties a "tutte" per il proprietario e a
+    // "solo quelle assegnate" per un membro: nessuna logica in più qui.
+    const props = await listaProprieta();
     setProperties(props);
-    setIntegrations(ints);
+
+    if (user?.email === OWNER_EMAIL) {
+      setIntegrations(await listaIntegrazioni());
+    }
   };
 
   useEffect(() => {
@@ -49,14 +63,18 @@ function Dashboard() {
   return (
     <div>
       <p className="eyebrow">Cruscotto</p>
-      <h1 className="mt-2 text-3xl font-semibold text-primary">Le tue proprietà</h1>
+      <h1 className="mt-2 text-3xl font-semibold text-primary">
+        {isOwner ? "Le tue proprietà" : "Le proprietà a cui hai accesso"}
+      </h1>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">{APP_TAGLINE}</p>
 
       <div className="mt-10 grid gap-4">
         {properties === null && <p className="text-sm text-muted-foreground">Caricamento…</p>}
         {properties?.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nessuna proprietà ancora. Aggiungine una qui sotto.
+            {isOwner
+              ? "Nessuna proprietà ancora. Aggiungine una qui sotto."
+              : "Non hai ancora accesso a nessuna proprietà."}
           </p>
         )}
         {properties?.map((p) => {
@@ -77,50 +95,54 @@ function Dashboard() {
                   <p className="font-semibold text-primary">{p.name}</p>
                   {p.url && <p className="mt-0.5 text-xs text-muted-foreground">{p.url}</p>}
                 </div>
-                <div className="flex gap-1.5">
-                  {PROVIDER.map((prov) => (
-                    <span
-                      key={prov}
-                      title={`${PROVIDER_LABEL[prov]}${connesse.has(prov) ? " — connesso" : " — non connesso"}`}
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{
-                        background: connesse.has(prov) ? "var(--color-accent)" : "transparent",
-                        border: connesse.has(prov) ? "none" : "1.5px solid var(--color-border)",
-                      }}
-                    />
-                  ))}
-                </div>
+                {isOwner && (
+                  <div className="flex gap-1.5">
+                    {PROVIDER.map((prov) => (
+                      <span
+                        key={prov}
+                        title={`${PROVIDER_LABEL[prov]}${connesse.has(prov) ? " — connesso" : " — non connesso"}`}
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{
+                          background: connesse.has(prov) ? "var(--color-accent)" : "transparent",
+                          border: connesse.has(prov) ? "none" : "1.5px solid var(--color-border)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </Link>
           );
         })}
       </div>
 
-      <form
-        onSubmit={onCrea}
-        className="mt-8 flex flex-wrap gap-2 rounded-lg border border-dashed border-border p-4"
-      >
-        <input
-          value={nuovoNome}
-          onChange={(e) => setNuovoNome(e.target.value)}
-          placeholder="Nome proprietà (es. Discernia)"
-          required
-          className="min-w-[200px] flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <input
-          value={nuovoUrl}
-          onChange={(e) => setNuovoUrl(e.target.value)}
-          placeholder="https://www.esempio.it (opzionale)"
-          className="min-w-[220px] flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <button
-          type="submit"
-          disabled={creando}
-          className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+      {isOwner && (
+        <form
+          onSubmit={onCrea}
+          className="mt-8 flex flex-wrap gap-2 rounded-lg border border-dashed border-border p-4"
         >
-          <Plus className="h-4 w-4" /> Aggiungi
-        </button>
-      </form>
+          <input
+            value={nuovoNome}
+            onChange={(e) => setNuovoNome(e.target.value)}
+            placeholder="Nome proprietà (es. Discernia)"
+            required
+            className="min-w-[200px] flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <input
+            value={nuovoUrl}
+            onChange={(e) => setNuovoUrl(e.target.value)}
+            placeholder="https://www.esempio.it (opzionale)"
+            className="min-w-[220px] flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            type="submit"
+            disabled={creando}
+            className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" /> Aggiungi
+          </button>
+        </form>
+      )}
     </div>
   );
 }

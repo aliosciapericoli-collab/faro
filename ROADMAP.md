@@ -14,10 +14,19 @@
       principali — ultimi 28 giorni) sulla pagina di ogni proprietà,
       collegati alla GA4 Data API reale. Restano "non connesso" finché non
       si incolla la credenziale GA4 (vedi sotto) — nessun dato finto.
+- [x] **Sub-account**: da ogni scheda proprietà (solo il proprietario la
+      vede) si può invitare un'email esterna che, dopo il login, vede
+      **solo i grafici GA4 di quella proprietà** — niente credenziali,
+      niente altre proprietà, niente pulsanti di connessione. L'utente va
+      creato prima in Supabase Auth (Authentication → Users → Add user),
+      poi aggiunto in "Accesso esterno" sulla pagina della proprietà.
 - [ ] **Migration da applicare**: `supabase/migrations/0002_leggi_credenziale.sql`
-      va eseguita nell'SQL Editor del progetto Supabase di Faro (stessa
-      procedura della prima migration) — senza, il pulsante "Connetti" su
-      GA4 salva la credenziale ma i grafici non riescono a leggerla.
+      e `supabase/migrations/0003_property_members.sql` vanno eseguite
+      nell'SQL Editor del progetto Supabase di Faro (stessa procedura
+      della prima migration) — senza la 0002 il pulsante "Connetti" su
+      GA4 salva la credenziale ma i grafici non riescono a leggerla; senza
+      la 0003 la sezione "Accesso esterno" non ha la tabella su cui
+      scrivere.
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
@@ -75,9 +84,5 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
 
 ## Deploy
 
-Non ancora scelto. Opzioni, da discutere quando si arriva lì:
-
-- Stesso schema di Discernia (Cloudflare via Nitro) — richiede connettere
-  questo repo a un progetto Cloudflare/Lovable.
-- Un host Node semplice (Railway, Render, Fly.io) — meno configurazione,
-  va bene per un tool interno a basso traffico come questo.
+Fatto: Render (`render.yaml`), live su `faro-cq84.onrender.com`, redeploy
+automatico a ogni push su `main`.
