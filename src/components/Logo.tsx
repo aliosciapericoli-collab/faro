@@ -1,4 +1,6 @@
-export function LogoMark({ className = "h-8 w-8" }: { className?: string }) {
+import { HEADER_SLOGAN } from "@/lib/site";
+
+export function LogoMark({ className = "h-16 w-16" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" className={className} aria-hidden="true">
       <rect width="64" height="64" rx="14" fill="var(--color-card)" />
@@ -14,11 +16,11 @@ export function LogoMark({ className = "h-8 w-8" }: { className?: string }) {
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-2.5 ${className ?? ""}`}>
-      <LogoMark className="h-8 w-8" />
+    <div className={`flex items-center gap-3.5 ${className ?? ""}`}>
+      <LogoMark className="h-16 w-16" />
       <div className="leading-tight">
-        <div className="text-lg font-semibold tracking-[0.08em] text-primary">FARO</div>
-        <div className="eyebrow text-[0.6rem] tracking-[0.14em]">Alioscia Network</div>
+        <div className="text-3xl font-semibold tracking-[0.08em] text-primary">FARO</div>
+        <div className="eyebrow text-[0.65rem] tracking-[0.14em]">{HEADER_SLOGAN}</div>
       </div>
     </div>
   );

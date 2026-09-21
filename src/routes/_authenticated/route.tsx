@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -20,7 +21,7 @@ function AuthenticatedLayout() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
           <Link to="/">
@@ -35,9 +36,10 @@ function AuthenticatedLayout() {
           </button>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-5 py-10">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }
