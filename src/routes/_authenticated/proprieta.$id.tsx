@@ -1,16 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Circle,
-  Megaphone,
-  Search,
-  Target,
-  Trash2,
-  UserPlus,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Megaphone, Target, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { listaIntegrazioni, type Integration, type Property } from "@/lib/proprieta";
 import { listaMembri, invitaMembro, rimuoviMembro, type Membro } from "@/lib/membri";
@@ -22,6 +13,7 @@ import {
   type Provider,
 } from "@/lib/credenziali.functions";
 import { AnalyticsGA4 } from "@/components/AnalyticsGA4";
+import { AnalyticsSearchConsole } from "@/components/AnalyticsSearchConsole";
 import { OWNER_EMAIL } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/proprieta/$id")({
@@ -101,16 +93,17 @@ function ProprietaDetail() {
         <AnalyticsGA4 propertyId={property.id} />
       </div>
 
+      <div className="mt-10">
+        <p className="eyebrow">Analytics</p>
+        <h2 className="mt-1 mb-4 text-xl font-semibold text-primary">Google Search Console</h2>
+        <AnalyticsSearchConsole propertyId={property.id} />
+      </div>
+
       {isOwner && (
         <div className="mt-10">
           <p className="eyebrow">Altri canali</p>
           <h2 className="mt-1 mb-4 text-xl font-semibold text-primary">In arrivo</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <CanaleNonCollegato
-              icona={<Search className="h-4 w-4" />}
-              nome="Search Console"
-              descrizione="Query di ricerca, posizione media, copertura dell'indice."
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
             <CanaleNonCollegato
               icona={<Megaphone className="h-4 w-4" />}
               nome="Google Ads"
@@ -335,7 +328,21 @@ function IntegrationCard({
                 Amministrazione → Dettagli proprietà.
               </>
             )}
-            {provider === "search_console" && " Formato: JSON del service account."}
+            {provider === "search_console" && (
+              <>
+                {" "}
+                Formato atteso, un unico JSON:{" "}
+                <code className="text-[11px]">
+                  {'{"service_account": {...}, "site_url": "sc-domain:esempio.it"}'}
+                </code>
+                . Stesso service account di GA4 (va aggiunto anche qui come utente in Search Console
+                → Impostazioni → Utenti e permessi). <code className="text-[11px]">site_url</code> è
+                l'identificativo esatto della proprietà in Search Console: per una proprietà a
+                dominio è <code className="text-[11px]">sc-domain:esempio.it</code>, per una a
+                prefisso URL è l'URL verificato per intero con lo slash finale (es.{" "}
+                <code className="text-[11px]">https://www.esempio.it/</code>).
+              </>
+            )}
             {(provider === "google_ads" || provider === "meta_ads") &&
               " Formato: token / chiave API."}
           </label>
