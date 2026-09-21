@@ -18,6 +18,8 @@ export type ReportGA4 = {
   connected: true;
   daily: { date: string; activeUsers: number; pageViews: number }[];
   topEvents: { name: string; count: number }[];
+  /** Variazione percentuale vs i 28 giorni precedenti (null se il periodo precedente è a zero). */
+  variazione: { activeUsers: number | null; pageViews: number | null };
 };
 
 export const leggiReportGA4 = createServerFn({ method: "POST" })
@@ -92,7 +94,27 @@ export const leggiReportGA4 = createServerFn({ method: "POST" })
           count: Number(row.metricValues?.[0]?.value ?? 0),
         }));
 
-        return { connected: true, daily, topEvents };
+        const [precedente] = await client.runReport({
+          property,
+          dateRanges: [{ startDate: "56daysAgo", endDate: "29daysAgo" }],
+          metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
+        });
+        const prevUtenti = Number(precedente.rows?.[0]?.metricValues?.[0]?.value ?? 0);
+        const prevVisualizzazioni = Number(precedente.rows?.[0]?.metricValues?.[1]?.value ?? 0);
+        const totaleUtenti = daily.reduce((s, d) => s + d.activeUsers, 0);
+        const totaleVisualizzazioni = daily.reduce((s, d) => s + d.pageViews, 0);
+        const variazionePct = (attuale: number, precedente: number) =>
+          precedente > 0 ? ((attuale - precedente) / precedente) * 100 : null;
+
+        return {
+          connected: true,
+          daily,
+          topEvents,
+          variazione: {
+            activeUsers: variazionePct(totaleUtenti, prevUtenti),
+            pageViews: variazionePct(totaleVisualizzazioni, prevVisualizzazioni),
+          },
+        };
       } catch (err) {
         return {
           connected: false,
