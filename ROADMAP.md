@@ -27,9 +27,12 @@
       variazione % vs i 28 giorni precedenti (mai finta: nulla se il
       periodo precedente è a zero), card "in arrivo" per i canali non
       ancora collegati.
-- [x] **Google Search Console** — grafici già pronti (clic, impressioni,
-      query principali), manca solo la credenziale. Stesso service account
-      di GA4, riusabile.
+- [x] **Google Search Console** — collegato e live: clic, impressioni e
+      query principali reali per Discernia. Stesso service account di GA4.
+- [x] **Google Ads (lettura dati)** — grafici già pronti (spesa,
+      impressioni, campagne principali, in valuta reale dell'account),
+      manca solo la credenziale. A differenza di GA4/Search Console serve
+      un client OAuth + refresh token, non un service account (vedi sotto).
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
@@ -68,16 +71,30 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
 - Appena connesso, compaiono da soli: clic e impressioni (28 giorni), più le
   query di ricerca principali.
 
-### Google Ads (creazione/gestione campagne)
+### Google Ads (lettura dati) — grafici già pronti, manca solo la credenziale
 
-- Un **account Google Ads** (anche vuoto, per iniziare).
-- Un **developer token** (richiesto tramite il Centro API di Google Ads —
-  l'accesso "standard" richiede una verifica che può richiedere giorni).
-- Un **client OAuth** (Google Cloud Console) con permesso sulla Google Ads
-  API.
-- Una volta collegato: creazione di campagne Search dal cruscotto, con
-  conferma manuale prima di ogni attivazione — mai spesa automatica senza
-  un tuo click esplicito.
+- Un **account Google Ads** (anche vuoto, per iniziare), con l'**ID cliente**
+  a 10 cifre (in alto a destra nell'interfaccia Google Ads, es. `123-456-7890`
+  → si incolla senza trattini).
+- Un **developer token**, richiesto da Google Ads → Strumenti e impostazioni
+  → Centro API. L'accesso "di base" (test) è quasi immediato; quello
+  "standard" (dati reali di produzione) richiede una verifica che può
+  richiedere qualche giorno.
+- Un **client OAuth** (Web o Desktop) nello stesso progetto Google Cloud già
+  usato per GA4/Search Console (`Alma` / `gen-lang-client-0155255216`), con
+  la **Google Ads API** abilitata.
+- Un **refresh token**, ottenuto una tantum autorizzando l'app con quel
+  client OAuth (es. tramite l'[OAuth 2.0 Playground](https://developers.google.com/oauthplayground)
+  di Google, scope `https://www.googleapis.com/auth/adwords`).
+- In Faro, sulla scheda Google Ads della proprietà, incollare un unico
+  JSON: `{"developer_token": "...", "client_id": "...", "client_secret": "...", "refresh_token": "...", "customer_id": "1234567890"}`
+  (aggiungere anche `"login_customer_id"` se l'account è gestito da un
+  account manager/MCC).
+- Appena connesso, compaiono da soli: spesa e impressioni (28 giorni, in
+  valuta reale dell'account) più le campagne principali per spesa.
+- **Creazione campagne dal cruscotto**: passo successivo, non ancora
+  costruito — richiede una UI dedicata con conferma manuale prima di ogni
+  attivazione, mai spesa automatica senza un click esplicito.
 
 ### Meta Ads (Facebook/Instagram, creazione/gestione campagne)
 
