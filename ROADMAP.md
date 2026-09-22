@@ -108,9 +108,15 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
   l'utente ha accesso diretto.
 - Appena connesso, compaiono da soli: spesa e impressioni (28 giorni, in
   valuta reale dell'account) più le campagne principali per spesa.
-- **Creazione campagne dal cruscotto**: passo successivo, non ancora
-  costruito — richiede una UI dedicata con conferma manuale prima di ogni
-  attivazione, mai spesa automatica senza un click esplicito.
+- [x] **Gestione campagne dal cruscotto**: solo il proprietario (mai i
+  sub-account) può mettere in pausa/riattivare una campagna esistente e
+  cambiarne il budget giornaliero, direttamente dalla scheda della
+  proprietà. Ogni azione richiede due click (il primo mostra "Confermi?",
+  il secondo esegue davvero la chiamata a Google Ads) — nessuna modifica
+  parte da un solo click.
+- **Creazione campagne da zero**: non ancora costruita — richiede una UI
+  dedicata per audience, creatività e obiettivi, più tutta la logica di
+  conferma manuale già usata per pausa/budget.
 
 ### Meta Ads (Facebook/Instagram, creazione/gestione campagne)
 
