@@ -33,6 +33,12 @@
       e campagne principali reali, in EUR. A differenza di GA4/Search
       Console serve un client OAuth + refresh token, non un service
       account (vedi sotto).
+- [x] **Lovable Analytics** — quinta fonte dati: visitatori/pagine viste
+      reali via API pubblica di Lovable (serve piano Business+ e un API
+      key da Settings → Access tokens). Non dipende dal consenso cookie
+      del visitatore come GA4 — utile per distinguere "nessun traffico"
+      da "traffico c'è ma GA4 non lo vede" (il caso reale di Discernia,
+      che ci ha portato a scoprire il bug del CSP che bloccava GA4).
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
@@ -123,6 +129,25 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
   esplicitamente dalla lista qui sopra, mai in automatico dalla
   creazione. Solo campagne di tipo Search per ora (niente Performance
   Max/Display/Shopping da qui).
+- In corso: **estensioni immagine** opzionali sulla campagna creata dal
+  form (una miniatura accanto al testo negli annunci mobile) — l'enum
+  `AssetFieldType` giusto per collegare l'asset immagine alla campagna
+  non è ancora confermato (il valore "IMAGE" non è valido nell'API v25).
+
+### Lovable Analytics (lettura dati) — collegato e live per Discernia
+
+- Un **API key** Lovable (`lov_...`), da Lovable → Settings → Access
+  tokens. Richiede piano **Business o superiore** e ruolo owner/admin nel
+  workspace.
+- L'**ID progetto** Lovable, dall'URL dell'editor
+  (`lovable.dev/projects/<ID>`).
+- In Faro, sulla scheda Lovable Analytics della proprietà, incollare un
+  unico JSON: `{"api_key": "lov_...", "project_id": "..."}`.
+- Appena connesso, compaiono da soli: visitatori e pagine viste (28
+  giorni), più pagine e sorgenti principali. A differenza di GA4, non
+  richiede consenso cookie del visitatore — utile come confronto per
+  capire se un GA4 a zero è davvero "nessun traffico" o un problema di
+  tracciamento (è così che abbiamo scoperto il bug del CSP su Discernia).
 
 ### Meta Ads (Facebook/Instagram, creazione/gestione campagne)
 
