@@ -29,10 +29,10 @@
       ancora collegati.
 - [x] **Google Search Console** — collegato e live: clic, impressioni e
       query principali reali per Discernia. Stesso service account di GA4.
-- [x] **Google Ads (lettura dati)** — grafici già pronti (spesa,
-      impressioni, campagne principali, in valuta reale dell'account),
-      manca solo la credenziale. A differenza di GA4/Search Console serve
-      un client OAuth + refresh token, non un service account (vedi sotto).
+- [x] **Google Ads** — collegato e live per Discernia: spesa, impressioni
+      e campagne principali reali, in EUR. A differenza di GA4/Search
+      Console serve un client OAuth + refresh token, non un service
+      account (vedi sotto).
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
@@ -71,25 +71,41 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
 - Appena connesso, compaiono da soli: clic e impressioni (28 giorni), più le
   query di ricerca principali.
 
-### Google Ads (lettura dati) — grafici già pronti, manca solo la credenziale
+### Google Ads (lettura dati) — collegato e live per Discernia
 
 - Un **account Google Ads** (anche vuoto, per iniziare), con l'**ID cliente**
   a 10 cifre (in alto a destra nell'interfaccia Google Ads, es. `123-456-7890`
-  → si incolla senza trattini).
-- Un **developer token**, richiesto da Google Ads → Strumenti e impostazioni
-  → Centro API. L'accesso "di base" (test) è quasi immediato; quello
-  "standard" (dati reali di produzione) richiede una verifica che può
-  richiedere qualche giorno.
-- Un **client OAuth** (Web o Desktop) nello stesso progetto Google Cloud già
-  usato per GA4/Search Console (`Alma` / `gen-lang-client-0155255216`), con
-  la **Google Ads API** abilitata.
+  → si incolla senza trattini). Un account appena creato resta
+  "Configurazione in corso" e l'API lo rifiuta (`CUSTOMER_NOT_ENABLED`)
+  finché non si crea almeno una campagna (anche a budget minimo, 1€/giorno,
+  da mettere subito in pausa — l'importante è completare il wizard di
+  onboarding di Google Ads).
+- Il **client OAuth** (Web, non Desktop — serve un "URI di reindirizzamento
+  autorizzato" che solo il tipo Web espone) va creato nello stesso progetto
+  Google Cloud già usato per GA4/Search Console (`Alma` /
+  `gen-lang-client-0155255216`), con la **Google Ads API abilitata**
+  (API e servizi → Libreria).
+- Dal 9 settembre 2026 Google ha **ritirato i developer token classici**:
+  il livello di accesso ora è legato al *progetto Google Cloud* che possiede
+  le credenziali OAuth, non più al token. Si richiede da Google Cloud
+  Console → API e servizi → Google Ads API → "Livelli di accesso" →
+  "Gestisci" → "Richiedi l'accesso" (livello Explorer, approvazione
+  automatica in pochi minuti — ma può esserci un bug noto di propagazione
+  che dà `USER_PERMISSION_DENIED` per una decina di minuti dopo
+  l'approvazione). Il developer token stesso (dal vecchio Centro API di
+  Google Ads) va comunque incluso nell'header per compatibilità.
 - Un **refresh token**, ottenuto una tantum autorizzando l'app con quel
   client OAuth (es. tramite l'[OAuth 2.0 Playground](https://developers.google.com/oauthplayground)
-  di Google, scope `https://www.googleapis.com/auth/adwords`).
+  di Google, scope `https://www.googleapis.com/auth/adwords`, tipo di
+  accesso **Offline**).
 - In Faro, sulla scheda Google Ads della proprietà, incollare un unico
-  JSON: `{"developer_token": "...", "client_id": "...", "client_secret": "...", "refresh_token": "...", "customer_id": "1234567890"}`
-  (aggiungere anche `"login_customer_id"` se l'account è gestito da un
-  account manager/MCC).
+  JSON: `{"developer_token": "...", "client_id": "...", "client_secret": "...", "refresh_token": "...", "customer_id": "1234567890"}`.
+  **Non aggiungere `login_customer_id`** a meno che l'account non sia
+  davvero gestito tramite un MCC con utenti separati: se l'utente OAuth ha
+  già accesso diretto all'account (caso comune), quell'header fa fallire
+  la chiamata con `USER_PERMISSION_DENIED` — si verifica facilmente con
+  `customers:listAccessibleCustomers`, che elenca gli account a cui
+  l'utente ha accesso diretto.
 - Appena connesso, compaiono da soli: spesa e impressioni (28 giorni, in
   valuta reale dell'account) più le campagne principali per spesa.
 - **Creazione campagne dal cruscotto**: passo successivo, non ancora
