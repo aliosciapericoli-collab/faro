@@ -103,7 +103,7 @@ function ProprietaDetail() {
       <div className="mt-10">
         <p className="eyebrow">Analytics</p>
         <h2 className="mt-1 mb-4 text-xl font-semibold text-primary">Google Ads</h2>
-        <AnalyticsGoogleAds propertyId={property.id} />
+        <AnalyticsGoogleAds propertyId={property.id} isOwner={isOwner} />
       </div>
 
       {isOwner && (

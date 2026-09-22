@@ -27,13 +27,24 @@ const credenzialeSchema = z.object({
     .optional(),
 });
 
+type Credenziale = z.infer<typeof credenzialeSchema>;
+
 const API_VERSION = "v25";
 
 export type ReportGoogleAds = {
   connected: true;
   valuta: string;
   daily: { date: string; clicks: number; impressions: number; cost: number }[];
-  campaigns: { name: string; clicks: number; impressions: number; cost: number }[];
+  campaigns: {
+    name: string;
+    clicks: number;
+    impressions: number;
+    cost: number;
+    resourceName: string;
+    status: "ENABLED" | "PAUSED" | "REMOVED" | "UNKNOWN";
+    budgetResourceName: string | null;
+    budgetEuro: number | null;
+  }[];
   variazione: { clicks: number | null; impressions: number | null; cost: number | null };
 };
 
@@ -47,7 +58,7 @@ function sottraiGiorni(giorni: number): Date {
   return d;
 }
 
-async function ottieniAccessToken(cred: z.infer<typeof credenzialeSchema>): Promise<string> {
+async function ottieniAccessToken(cred: Credenziale): Promise<string> {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -66,21 +77,28 @@ async function ottieniAccessToken(cred: z.infer<typeof credenzialeSchema>): Prom
   return data.access_token;
 }
 
-async function eseguiGAQL(
-  cred: z.infer<typeof credenzialeSchema>,
-  accessToken: string,
-  query: string,
-): Promise<{ results?: Record<string, any>[] }> {
+function headersGoogleAds(cred: Credenziale, accessToken: string): Record<string, string> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     "developer-token": cred.developer_token,
     "Content-Type": "application/json",
   };
   if (cred.login_customer_id) headers["login-customer-id"] = cred.login_customer_id;
+  return headers;
+}
 
+async function eseguiGAQL(
+  cred: Credenziale,
+  accessToken: string,
+  query: string,
+): Promise<{ results?: Record<string, any>[] }> {
   const res = await fetch(
     `https://googleads.googleapis.com/${API_VERSION}/customers/${cred.customer_id}/googleAds:search`,
-    { method: "POST", headers, body: JSON.stringify({ query }) },
+    {
+      method: "POST",
+      headers: headersGoogleAds(cred, accessToken),
+      body: JSON.stringify({ query }),
+    },
   );
   if (!res.ok) {
     const body = await res.text();
@@ -89,42 +107,74 @@ async function eseguiGAQL(
   return res.json();
 }
 
+async function eseguiMutate(
+  cred: Credenziale,
+  accessToken: string,
+  risorsa: "campaigns" | "campaignBudgets",
+  resourceName: string,
+  update: Record<string, unknown>,
+  updateMask: string,
+): Promise<void> {
+  const res = await fetch(
+    `https://googleads.googleapis.com/${API_VERSION}/customers/${cred.customer_id}/${risorsa}:mutate`,
+    {
+      method: "POST",
+      headers: headersGoogleAds(cred, accessToken),
+      body: JSON.stringify({
+        operations: [{ update: { resourceName, ...update }, updateMask }],
+      }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Google Ads API: ${body.slice(0, 400)}`);
+  }
+}
+
+/** Legge e valida la credenziale Google Ads della proprietà, verificando che
+ * chi chiama abbia accesso in lettura (owner o membro invitato). */
+async function leggiCredenziale(
+  propertyId: string,
+  userEmail: string,
+): Promise<Credenziale | { errore: string }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  if (userEmail !== OWNER_EMAIL) {
+    const { data: membro } = await (supabaseAdmin as any)
+      .from("property_members")
+      .select("id")
+      .eq("property_id", propertyId)
+      .eq("email", userEmail)
+      .maybeSingle();
+    if (!membro) throw new Error("Non hai accesso a questa proprietà.");
+  }
+
+  const { data: secretRaw, error } = await (supabaseAdmin as any).rpc("leggi_credenziale", {
+    p_property_id: propertyId,
+    p_provider: "google_ads",
+  });
+  if (error) throw new Error(error.message);
+  if (!secretRaw) return { errore: "Google Ads non è connesso per questa proprietà." };
+
+  try {
+    return credenzialeSchema.parse(JSON.parse(secretRaw));
+  } catch (err) {
+    return {
+      errore:
+        err instanceof z.ZodError
+          ? `Credenziale Google Ads incompleta: ${err.issues.map((i) => i.path.join(".")).join(", ")}.`
+          : "Credenziale Google Ads in un formato inatteso.",
+    };
+  }
+}
+
 export const leggiReportGoogleAds = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .validator((d: unknown) => z.object({ propertyId: z.string().uuid() }).parse(d))
   .handler(
     async ({ data, context }): Promise<ReportGoogleAds | { connected: false; errore?: string }> => {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-      if (context.userEmail !== OWNER_EMAIL) {
-        const { data: membro } = await (supabaseAdmin as any)
-          .from("property_members")
-          .select("id")
-          .eq("property_id", data.propertyId)
-          .eq("email", context.userEmail)
-          .maybeSingle();
-        if (!membro) throw new Error("Non hai accesso a questa proprietà.");
-      }
-
-      const { data: secretRaw, error } = await (supabaseAdmin as any).rpc("leggi_credenziale", {
-        p_property_id: data.propertyId,
-        p_provider: "google_ads",
-      });
-      if (error) throw new Error(error.message);
-      if (!secretRaw) return { connected: false };
-
-      let cred: z.infer<typeof credenzialeSchema>;
-      try {
-        cred = credenzialeSchema.parse(JSON.parse(secretRaw));
-      } catch (err) {
-        return {
-          connected: false,
-          errore:
-            err instanceof z.ZodError
-              ? `Credenziale Google Ads incompleta: ${err.issues.map((i) => i.path.join(".")).join(", ")}.`
-              : "Credenziale Google Ads in un formato inatteso. Serve un JSON con developer_token, client_id, client_secret, refresh_token, customer_id.",
-        };
-      }
+      const cred = await leggiCredenziale(data.propertyId, context.userEmail);
+      if ("errore" in cred) return { connected: false, errore: cred.errore };
 
       try {
         const accessToken = await ottieniAccessToken(cred);
@@ -144,7 +194,9 @@ export const leggiReportGoogleAds = createServerFn({ method: "POST" })
           eseguiGAQL(
             cred,
             accessToken,
-            `SELECT campaign.name, metrics.clicks, metrics.impressions, metrics.cost_micros
+            `SELECT campaign.name, campaign.status, campaign.resource_name,
+                    campaign_budget.resource_name, campaign_budget.amount_micros,
+                    metrics.clicks, metrics.impressions, metrics.cost_micros
              FROM campaign WHERE segments.date BETWEEN '${inizio28}' AND '${oggi}'
              ORDER BY metrics.cost_micros DESC LIMIT 10`,
           ),
@@ -169,6 +221,14 @@ export const leggiReportGoogleAds = createServerFn({ method: "POST" })
           clicks: Number(r.metrics?.clicks ?? 0),
           impressions: Number(r.metrics?.impressions ?? 0),
           cost: Number(r.metrics?.costMicros ?? 0) / 1_000_000,
+          resourceName: r.campaign?.resourceName ?? "",
+          status: (r.campaign?.status ??
+            "UNKNOWN") as ReportGoogleAds["campaigns"][number]["status"],
+          budgetResourceName: r.campaignBudget?.resourceName ?? null,
+          budgetEuro:
+            r.campaignBudget?.amountMicros != null
+              ? Number(r.campaignBudget.amountMicros) / 1_000_000
+              : null,
         }));
         const prev = precedente.results?.[0]?.metrics ?? {};
         const prevClicks = Number(prev.clicks ?? 0);
@@ -199,3 +259,71 @@ export const leggiReportGoogleAds = createServerFn({ method: "POST" })
       }
     },
   );
+
+/** Solo il proprietario può agire su Google Ads: pausa/riattiva una campagna
+ * o ne cambia il budget. I sub-account invitati restano sempre di sola lettura. */
+export const impostaStatoCampagnaGoogleAds = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        propertyId: z.string().uuid(),
+        campaignResourceName: z.string().min(1),
+        stato: z.enum(["ENABLED", "PAUSED"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    if (context.userEmail !== OWNER_EMAIL)
+      throw new Error("Solo il proprietario può gestire le campagne.");
+
+    const cred = await leggiCredenziale(data.propertyId, context.userEmail);
+    if ("errore" in cred) throw new Error(cred.errore);
+
+    const accessToken = await ottieniAccessToken(cred);
+    await eseguiMutate(
+      cred,
+      accessToken,
+      "campaigns",
+      data.campaignResourceName,
+      { status: data.stato },
+      "status",
+    );
+    return { ok: true as const };
+  });
+
+export const impostaBudgetGoogleAds = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        propertyId: z.string().uuid(),
+        budgetResourceName: z.string().min(1),
+        importoEuro: z
+          .number()
+          .positive()
+          .max(
+            1000,
+            "Budget massimo 1000€/giorno da qui — per cifre più alte usa direttamente Google Ads.",
+          ),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    if (context.userEmail !== OWNER_EMAIL)
+      throw new Error("Solo il proprietario può gestire le campagne.");
+
+    const cred = await leggiCredenziale(data.propertyId, context.userEmail);
+    if ("errore" in cred) throw new Error(cred.errore);
+
+    const accessToken = await ottieniAccessToken(cred);
+    await eseguiMutate(
+      cred,
+      accessToken,
+      "campaignBudgets",
+      data.budgetResourceName,
+      { amountMicros: String(Math.round(data.importoEuro * 1_000_000)) },
+      "amount_micros",
+    );
+    return { ok: true as const };
+  });
