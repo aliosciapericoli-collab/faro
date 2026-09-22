@@ -129,10 +129,14 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
   esplicitamente dalla lista qui sopra, mai in automatico dalla
   creazione. Solo campagne di tipo Search per ora (niente Performance
   Max/Display/Shopping da qui).
-- In corso: **estensioni immagine** opzionali sulla campagna creata dal
-  form (una miniatura accanto al testo negli annunci mobile) — l'enum
-  `AssetFieldType` giusto per collegare l'asset immagine alla campagna
-  non è ancora confermato (il valore "IMAGE" non è valido nell'API v25).
+- **Estensioni immagine**: valutate e scartate. Il campo giusto è
+  `AD_IMAGE`, ma Google lo riserva ad account in whitelist speciale —
+  `campaigns:mutate`/`campaignAssets:mutate` rifiuta chiunque altro con
+  `UNSUPPORTED_FIELD_TYPE`, confermato con `validateOnly` sull'account
+  reale. L'unica alternativa è il sistema di feed deprecato
+  (`ExtensionFeedItem`): non ne vale la complessità per un'estensione
+  opzionale. Gli annunci di ricerca restano testo puro, senza immagine
+  — è il comportamento normale per questo tipo di campagna.
 
 ### Lovable Analytics (lettura dati) — collegato e live per Discernia
 
