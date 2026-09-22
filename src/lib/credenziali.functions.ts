@@ -2,13 +2,20 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireOwner } from "@/integrations/supabase/auth-middleware";
 
-export const PROVIDER = ["ga4", "search_console", "google_ads", "meta_ads"] as const;
+export const PROVIDER = [
+  "ga4",
+  "search_console",
+  "google_ads",
+  "lovable_analytics",
+  "meta_ads",
+] as const;
 export type Provider = (typeof PROVIDER)[number];
 
 export const PROVIDER_LABEL: Record<Provider, string> = {
   ga4: "Google Analytics 4",
   search_console: "Google Search Console",
   google_ads: "Google Ads",
+  lovable_analytics: "Lovable Analytics",
   meta_ads: "Meta Ads (Facebook/Instagram)",
 };
 

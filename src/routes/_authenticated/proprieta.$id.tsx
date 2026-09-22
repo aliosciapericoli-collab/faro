@@ -15,6 +15,7 @@ import {
 import { AnalyticsGA4 } from "@/components/AnalyticsGA4";
 import { AnalyticsSearchConsole } from "@/components/AnalyticsSearchConsole";
 import { AnalyticsGoogleAds } from "@/components/AnalyticsGoogleAds";
+import { AnalyticsLovable } from "@/components/AnalyticsLovable";
 import { OWNER_EMAIL } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/proprieta/$id")({
@@ -104,6 +105,12 @@ function ProprietaDetail() {
         <p className="eyebrow">Analytics</p>
         <h2 className="mt-1 mb-4 text-xl font-semibold text-primary">Google Ads</h2>
         <AnalyticsGoogleAds propertyId={property.id} isOwner={isOwner} />
+      </div>
+
+      <div className="mt-10">
+        <p className="eyebrow">Analytics</p>
+        <h2 className="mt-1 mb-4 text-xl font-semibold text-primary">Lovable Analytics</h2>
+        <AnalyticsLovable propertyId={property.id} />
       </div>
 
       {isOwner && (
@@ -364,6 +371,16 @@ function IntegrationCard({
                 <code className="text-[11px]">customer_id</code> è l'ID dell'account Ads a 10 cifre,
                 senza trattini. Se l'account è gestito da un account manager (MCC), aggiungi anche{" "}
                 <code className="text-[11px]">"login_customer_id": "..."</code>.
+              </>
+            )}
+            {provider === "lovable_analytics" && (
+              <>
+                {" "}
+                Formato atteso, un unico JSON:{" "}
+                <code className="text-[11px]">{'{"api_key": "lov_...", "project_id": "..."}'}</code>
+                . La chiave si crea su Lovable → Settings → Access tokens (serve piano Business o
+                superiore, ruolo owner/admin); l'ID progetto è nell'URL dell'editor Lovable
+                (lovable.dev/projects/<code className="text-[11px]">ID-QUI</code>).
               </>
             )}
             {provider === "meta_ads" && " Formato: token / chiave API."}
