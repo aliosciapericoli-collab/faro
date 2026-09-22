@@ -114,9 +114,15 @@ Elenco di cosa serve raccogliere, integrazione per integrazione:
   proprietà. Ogni azione richiede due click (il primo mostra "Confermi?",
   il secondo esegue davvero la chiamata a Google Ads) — nessuna modifica
   parte da un solo click.
-- **Creazione campagne da zero**: non ancora costruita — richiede una UI
-  dedicata per audience, creatività e obiettivi, più tutta la logica di
-  conferma manuale già usata per pausa/budget.
+- [x] **Creazione campagne di ricerca dal cruscotto**: form "+ Nuova
+  campagna" (solo proprietario) — nome, URL, budget, parole chiave, titoli
+  e descrizioni per un annuncio responsive di ricerca. Tutto creato in
+  un'unica chiamata atomica (budget + campagna + gruppo annunci + parole
+  chiave + annuncio): o va tutto a buon fine, o non viene creato nulla.
+  La campagna nasce **sempre in pausa** — parte solo se poi la riattivi
+  esplicitamente dalla lista qui sopra, mai in automatico dalla
+  creazione. Solo campagne di tipo Search per ora (niente Performance
+  Max/Display/Shopping da qui).
 
 ### Meta Ads (Facebook/Instagram, creazione/gestione campagne)
 
