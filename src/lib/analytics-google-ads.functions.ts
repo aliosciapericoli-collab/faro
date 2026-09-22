@@ -327,3 +327,126 @@ export const impostaBudgetGoogleAds = createServerFn({ method: "POST" })
     );
     return { ok: true as const };
   });
+
+/** Crea una campagna Search completa (budget, campagna, gruppo annunci,
+ * parole chiave, annuncio responsive di ricerca) in un'unica chiamata
+ * atomica: o va tutto a buon fine, o niente viene creato. La campagna nasce
+ * SEMPRE in pausa — per farla partire davvero serve un'azione separata ed
+ * esplicita (il pulsante "Riattiva" già presente, con la sua doppia
+ * conferma), mai un click solo qui. */
+export const creaCampagnaGoogleAds = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        propertyId: z.string().uuid(),
+        nome: z.string().min(1).max(120),
+        urlFinale: z.string().url(),
+        budgetEuro: z
+          .number()
+          .positive()
+          .max(
+            1000,
+            "Budget massimo 1000€/giorno da qui — per cifre più alte usa direttamente Google Ads.",
+          ),
+        paroleChiave: z.array(z.string().min(1).max(80)).min(1).max(20),
+        titoli: z.array(z.string().min(1).max(30)).min(3).max(15),
+        descrizioni: z.array(z.string().min(1).max(90)).min(2).max(4),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    if (context.userEmail !== OWNER_EMAIL)
+      throw new Error("Solo il proprietario può creare campagne.");
+
+    const cred = await leggiCredenziale(data.propertyId, context.userEmail);
+    if ("errore" in cred) throw new Error(cred.errore);
+
+    const accessToken = await ottieniAccessToken(cred);
+    const cid = cred.customer_id;
+    const rBudget = `customers/${cid}/campaignBudgets/-1`;
+    const rCampaign = `customers/${cid}/campaigns/-2`;
+    const rAdGroup = `customers/${cid}/adGroups/-3`;
+
+    const mutateOperations: Record<string, unknown>[] = [
+      {
+        campaignBudgetOperation: {
+          create: {
+            resourceName: rBudget,
+            name: `Budget — ${data.nome} — ${Date.now()}`,
+            amountMicros: String(Math.round(data.budgetEuro * 1_000_000)),
+            deliveryMethod: "STANDARD",
+            explicitlyShared: false,
+          },
+        },
+      },
+      {
+        campaignOperation: {
+          create: {
+            resourceName: rCampaign,
+            name: data.nome,
+            advertisingChannelType: "SEARCH",
+            status: "PAUSED",
+            campaignBudget: rBudget,
+            maximizeConversions: {},
+            networkSettings: {
+              targetGoogleSearch: true,
+              targetSearchNetwork: false,
+              targetContentNetwork: false,
+              targetPartnerSearchNetwork: false,
+            },
+            containsEuPoliticalAdvertising: "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
+          },
+        },
+      },
+      {
+        adGroupOperation: {
+          create: {
+            resourceName: rAdGroup,
+            name: `${data.nome} — gruppo 1`,
+            campaign: rCampaign,
+            status: "ENABLED",
+            type: "SEARCH_STANDARD",
+          },
+        },
+      },
+      ...data.paroleChiave.map((testo) => ({
+        adGroupCriterionOperation: {
+          create: {
+            adGroup: rAdGroup,
+            status: "ENABLED",
+            keyword: { text: testo, matchType: "BROAD" },
+          },
+        },
+      })),
+      {
+        adGroupAdOperation: {
+          create: {
+            adGroup: rAdGroup,
+            status: "ENABLED",
+            ad: {
+              finalUrls: [data.urlFinale],
+              responsiveSearchAd: {
+                headlines: data.titoli.map((testo) => ({ text: testo })),
+                descriptions: data.descrizioni.map((testo) => ({ text: testo })),
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    const res = await fetch(
+      `https://googleads.googleapis.com/${API_VERSION}/customers/${cid}/googleAds:mutate`,
+      {
+        method: "POST",
+        headers: headersGoogleAds(cred, accessToken),
+        body: JSON.stringify({ mutateOperations }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Google Ads API: ${body.slice(0, 500)}`);
+    }
+    return { ok: true as const };
+  });

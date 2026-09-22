@@ -14,6 +14,7 @@ import {
   leggiReportGoogleAds,
   impostaStatoCampagnaGoogleAds,
   impostaBudgetGoogleAds,
+  creaCampagnaGoogleAds,
   type ReportGoogleAds,
 } from "@/lib/analytics-google-ads.functions";
 
@@ -232,6 +233,214 @@ export function AnalyticsGoogleAds({
           </ul>
         </div>
       )}
+
+      {isOwner && <NuovaCampagnaForm propertyId={propertyId} onCreata={ricarica} />}
+    </div>
+  );
+}
+
+function textAreaARighe(valore: string): string[] {
+  return valore
+    .split("\n")
+    .map((riga) => riga.trim())
+    .filter(Boolean);
+}
+
+function NuovaCampagnaForm({ propertyId, onCreata }: { propertyId: string; onCreata: () => void }) {
+  const creaRaw = useServerFn(creaCampagnaGoogleAds);
+  const [aperto, setAperto] = useState(false);
+  const [nome, setNome] = useState("");
+  const [url, setUrl] = useState("");
+  const [budget, setBudget] = useState("");
+  const [paroleChiave, setParoleChiave] = useState("");
+  const [titoli, setTitoli] = useState("");
+  const [descrizioni, setDescrizioni] = useState("");
+  const [inviando, setInviando] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+  const [fatto, setFatto] = useState(false);
+
+  const listaParole = textAreaARighe(paroleChiave);
+  const listaTitoli = textAreaARighe(titoli);
+  const listaDescrizioni = textAreaARighe(descrizioni);
+
+  const valido =
+    nome.trim().length > 0 &&
+    /^https?:\/\//.test(url.trim()) &&
+    Number(budget.replace(",", ".")) > 0 &&
+    listaParole.length >= 1 &&
+    listaTitoli.length >= 3 &&
+    listaTitoli.every((t) => t.length <= 30) &&
+    listaDescrizioni.length >= 2 &&
+    listaDescrizioni.every((d) => d.length <= 90);
+
+  const crea = async () => {
+    if (!valido) {
+      setErrore(
+        "Controlla i campi: servono almeno 3 titoli (max 30 caratteri) e 2 descrizioni (max 90 caratteri), un URL valido e almeno una parola chiave.",
+      );
+      return;
+    }
+    setInviando(true);
+    setErrore(null);
+    try {
+      await creaRaw({
+        data: {
+          propertyId,
+          nome: nome.trim(),
+          urlFinale: url.trim(),
+          budgetEuro: Number(budget.replace(",", ".")),
+          paroleChiave: listaParole,
+          titoli: listaTitoli,
+          descrizioni: listaDescrizioni,
+        },
+      });
+      setFatto(true);
+      setNome("");
+      setUrl("");
+      setBudget("");
+      setParoleChiave("");
+      setTitoli("");
+      setDescrizioni("");
+      onCreata();
+    } catch (err) {
+      setErrore(err instanceof Error ? err.message : "Creazione non riuscita.");
+    } finally {
+      setInviando(false);
+    }
+  };
+
+  if (!aperto) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setAperto(true);
+          setFatto(false);
+        }}
+        className="w-full rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground transition-colors hover:border-accent hover:text-foreground"
+      >
+        + Nuova campagna
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <p className="eyebrow">Nuova campagna di ricerca</p>
+        <button
+          type="button"
+          onClick={() => setAperto(false)}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          Chiudi
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Viene creata <strong className="text-foreground">sempre in pausa</strong>: budget, parole
+        chiave e annuncio pronti, ma zero spesa finché non la riattivi tu esplicitamente dalla lista
+        campagne qui sopra.
+      </p>
+
+      {fatto && (
+        <p className="mt-3 rounded-md bg-accent/10 px-3 py-2 text-xs text-accent">
+          Campagna creata in pausa. Riattivala dalla lista qui sopra quando vuoi che parta.
+        </p>
+      )}
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">Nome campagna</label>
+          <input
+            type="text"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Es. Discernia — ricerca brand"
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">URL di destinazione</label>
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.discernia.it"
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">Budget giornaliero (€)</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            placeholder="1.00"
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            Parole chiave (una per riga)
+          </label>
+          <textarea
+            value={paroleChiave}
+            onChange={(e) => setParoleChiave(e.target.value)}
+            rows={3}
+            placeholder={"filosofia intelligenza artificiale\netica tecnologia"}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            Titoli — min. 3, max. 30 caratteri ciascuno, uno per riga
+          </label>
+          <textarea
+            value={titoli}
+            onChange={(e) => setTitoli(e.target.value)}
+            rows={4}
+            placeholder={"Discernia\nFilosofia e Tecnologia\nIntelligenza Artificiale Umana"}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <p className="mt-1 text-[0.65rem] text-muted-foreground">
+            {listaTitoli.length} titoli ·{" "}
+            {listaTitoli.filter((t) => t.length > 30).length > 0 && "alcuni superano 30 caratteri"}
+          </p>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            Descrizioni — min. 2, max. 90 caratteri ciascuna, una per riga
+          </label>
+          <textarea
+            value={descrizioni}
+            onChange={(e) => setDescrizioni(e.target.value)}
+            rows={4}
+            placeholder={
+              "Riflessioni su filosofia, etica e tecnologia nell'era dell'IA.\nArticoli per orientarsi tra innovazione e valori umani."
+            }
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <p className="mt-1 text-[0.65rem] text-muted-foreground">
+            {listaDescrizioni.length} descrizioni ·{" "}
+            {listaDescrizioni.filter((d) => d.length > 90).length > 0 &&
+              "alcune superano 90 caratteri"}
+          </p>
+        </div>
+      </div>
+
+      {errore && <p className="mt-3 text-xs text-destructive">{errore}</p>}
+
+      <button
+        type="button"
+        onClick={crea}
+        disabled={inviando}
+        className="mt-4 inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {inviando && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        Crea campagna (resta in pausa)
+      </button>
     </div>
   );
 }
