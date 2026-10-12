@@ -39,6 +39,27 @@
       del visitatore come GA4 — utile per distinguere "nessun traffico"
       da "traffico c'è ma GA4 non lo vede" (il caso reale di Discernia,
       che ci ha portato a scoprire il bug del CSP che bloccava GA4).
+- [x] **Accesso con Google** — bottone "Accedi con Google" sulla pagina di
+      login (OAuth Supabase, progetto Google Cloud `Faro` /
+      `oceanic-works-511409-h2`). Verificato: il client OAuth e il
+      provider Google su Supabase sono configurati correttamente (redirect
+      a `accounts.google.com` con il `client_id` giusto e `redirect_uri`
+      che torna al callback di Supabase). **Resta da verificare** che il
+      "Site URL"/"Redirect URLs" nelle impostazioni Auth del progetto
+      Supabase di Faro puntino a `https://faro-cq84.onrender.com` e non a
+      `http://localhost:3000` — senza, dopo il consenso Google (e anche
+      dopo il link di reset password) si finisce su localhost. Non è
+      modificabile da qui: va controllato a mano in Supabase →
+      Authentication → URL Configuration.
+- [x] **Pagina `/privacy`** — aggiunta per dare un link reale alla privacy
+      policy da usare nella schermata di consenso OAuth di Google
+      (`alioscia.it/privacy` non esiste, Faro non ha un dominio pubblico
+      proprio). Da collegare a mano in Google Cloud Console → API e
+      servizi → Schermata consenso OAuth → Branding, campo "Link privacy
+      policy" → `https://faro-cq84.onrender.com/privacy`. Finché l'app
+      resta in modalità Test, serve anche aggiungere ogni persona
+      invitata in "Utenti di prova" (max 100) — altrimenti va pubblicata
+      da Pubblico → Pubblica app.
 
 ## Per ogni integrazione: cosa serve prima che diventi "viva"
 
